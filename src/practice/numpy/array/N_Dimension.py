@@ -11,7 +11,6 @@ print("Size", n.size)
 print("Shape", n.shape)
 
 print(n[1, 2])
-
 y = n[:, 1]
 print(y)
 
