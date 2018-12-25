@@ -5,12 +5,11 @@ import sys
 import time
 import urllib.request
 import zipfile
-import matplotlib as plt
+
 import numpy as np
 import torch
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import datasets, transforms
-import seaborn as sns
 
 
 def prepare_loader(data_dir,
@@ -191,10 +190,8 @@ def train_model(model,
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
 
-    # loop complete
-    plt.plot(train_loss_data, label="taining loss")
-    plt.plot(valid_loss_data, label="validation loss")
-    plt.legend(frameon=False)
+    # return the model
+    return [model, train_loss_data, valid_loss_data]
 
 
 ######################################################
@@ -297,120 +294,3 @@ def download_progress(blocknum, blocksize, totalsize):
             sys.stderr.write("\n")
     else:  # total size is unknown
         sys.stderr.write("read %d\n" % (readsofar,))
-
-
-def plot_solution(image_path, model):
-    """
-    Plot an image with the top 5 class prediction
-    :param image_path:
-    :param model:
-    :return:
-    """
-    # Set up plot
-    plt.figure(figsize=(6, 10))
-    ax = plt.subplot(2, 1, 1)
-    # Set up title
-    flower_num = image_path.split('/')[3]
-    cat_to_name = get_cat_name()
-    title_ = cat_to_name[flower_num]
-    # Plot flower
-    img = process_image(image_path)
-    imshow(img, ax, title=title_);
-    # Make prediction
-    probs, labs, flowers = predict(image_path, cat_to_name, model)
-    # Plot bar chart
-    plt.subplot(2, 1, 2)
-    sns.barplot(x=probs, y=flowers, color=sns.color_palette()[0]);
-    plt.show()
-
-
-# Class Prediction
-
-def predict(image_path, cat_to_name, model, top_num=5):
-    """
-    Predict the class of an image, given a model
-    :param image_path:
-    :param model:
-    :param top_num:
-    :return:
-    """
-    # Process image
-    img = process_image(image_path)
-
-    # Numpy -> Tensor
-    image_tensor = torch.from_numpy(img).type(torch.FloatTensor)
-    # Add batch of size 1 to image
-    model_input = image_tensor.unsqueeze(0)
-
-    image_tensor.to('cpu')
-    model_input.to('cpu')
-    model.to('cpu')
-
-    # Probs
-    probs = torch.exp(model.forward(model_input))
-
-    # Top probs
-    top_probs, top_labs = probs.topk(top_num)
-    top_probs = top_probs.detach().numpy().tolist()[0]
-    top_labs = top_labs.detach().numpy().tolist()[0]
-
-    # Convert indices to classes
-    idx_to_class = {val: key for key, val in
-                    model.class_to_idx.items()}
-    top_labels = [idx_to_class[lab] for lab in top_labs]
-    top_flowers = [cat_to_name[idx_to_class[lab]] for lab in top_labs]
-    return top_probs, top_labels, top_flowers
-
-
-def process_image(image_path):
-    """
-    Scales, crops, and normalizes a PIL image for a PyTorch
-    model, returns an Numpy array
-    """
-    # Open the image
-    from PIL import Image
-    img = Image.open(image_path)
-    # Resize
-    if img.size[0] > img.size[1]:
-        img.thumbnail((10000, 256))
-    else:
-        img.thumbnail((256, 10000))
-    # Crop
-    left_margin = (img.width - 224) / 2
-    bottom_margin = (img.height - 224) / 2
-    right_margin = left_margin + 224
-    top_margin = bottom_margin + 224
-    img = img.crop((left_margin, bottom_margin, right_margin,
-                    top_margin))
-    # Normalize
-    img = np.array(img) / 255
-    mean = np.array([0.485, 0.456, 0.406])  # provided mean
-    std = np.array([0.229, 0.224, 0.225])  # provided std
-    img = (img - mean) / std
-
-    # Move color channels to first dimension as expected by PyTorch
-    img = img.transpose((2, 0, 1))
-
-    return img
-
-
-def imshow(image, ax=None, title=None):
-    if ax is None:
-        fig, ax = plt.subplots()
-    if title:
-        plt.title(title)
-    # PyTorch tensors assume the color channel is first
-    # but matplotlib assumes is the third dimension
-    image = image.transpose((1, 2, 0))
-
-    # Undo preprocessing
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    image = std * image + mean
-
-    # Image needs to be clipped between 0 and 1
-    image = np.clip(image, 0, 1)
-
-    ax.imshow(image)
-
-    return ax
