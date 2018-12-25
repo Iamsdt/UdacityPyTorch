@@ -5,12 +5,38 @@ import sys
 import time
 import urllib.request
 import zipfile
-
+import cv2
 import matplotlib as plt
 import numpy as np
 import torch
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import datasets, transforms
+
+
+def visualize_sample(train_loader, classes):
+    dataiter = iter(train_loader)
+    images, labels = dataiter.next()
+    images = images.numpy()  # convert images to numpy for display
+
+    # plot the images in the batch, along with the corresponding labels
+    fig = plt.figure(figsize=(25, 4))
+    for idx in np.arange(20):
+        ax = fig.add_subplot(2, 20 / 2, idx + 1, xticks=[], yticks=[])
+        plt.imshow(np.transpose(images[idx], (1, 2, 0)))
+        ax.set_title(classes[labels[idx]])
+
+
+def visualize(data_dir="flower_data"):
+    # visualize data
+    FILE_DIR = str(np.random.randint(1, 103))
+    print("Class Directory: ", FILE_DIR)
+    TRAIN_DATA_DIR = "{}/train/".format(data_dir)
+    for file_name in os.listdir(os.path.join(TRAIN_DATA_DIR, FILE_DIR))[1:3]:
+        img_array = cv2.imread(os.path.join(TRAIN_DATA_DIR, FILE_DIR, file_name))
+        img_array = cv2.resize(img_array, (224, 224), interpolation=cv2.INTER_CUBIC)
+        plt.imshow(img_array)
+        plt.show()
+        print(img_array.shape)
 
 
 def prepare_loader(data_dir,
@@ -29,9 +55,9 @@ def prepare_loader(data_dir,
 
     # obtain training indices that will be used for validation
     num_train = len(train_data)
-    print("Train size".format(num_train))
-    print("Valid size".format(len(valid_data)))
-    print("Test size".format(len(test_data)))
+    print("Train size:{}".format(num_train))
+    print("Valid size:{}".format(len(valid_data)))
+    print("Test size:{}".format(len(test_data)))
 
     # mix data
     # index of num of train
@@ -58,7 +84,7 @@ def prepare_loader(data_dir,
     test_loader = torch.utils.data.DataLoader(
         test_data, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
-    return train_loader, valid_loader, test_loader
+    return [train_loader, valid_loader, test_loader]
 
 
 def save_model(model, model_name="model.pt", path=None):
