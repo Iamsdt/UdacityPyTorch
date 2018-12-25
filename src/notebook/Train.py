@@ -91,7 +91,6 @@ def train_model(model,
                 train_loader,
                 valid_loader,
                 n_epochs,
-                device,
                 optimizer,
                 scheduler,
                 criterion,
@@ -103,6 +102,8 @@ def train_model(model,
     valid_loss_min = np.Inf
     # calculate time
     since = time.time()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     for epoch in range(n_epochs):
         print("Epoch: {}/{}".format(epoch + 1, n_epochs))
