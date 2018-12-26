@@ -9,7 +9,21 @@ import sys
 import numpy as np
 import torch
 from torch.utils.data.sampler import SubsetRandomSampler
-from torchvision import datasets,transforms
+from torchvision import datasets, transforms
+
+
+def freeze_parameters(model):
+    for param in model.features.parameters():
+        param.requires_grad = False
+
+    return model
+
+
+def unfreeze(model):
+    for param in model.parameters():
+        param.requires_grad = True
+
+    return model
 
 
 def prepare_loader(data_dir,
@@ -195,6 +209,52 @@ def train_model(model,
     return [model, train_loss_data, valid_loss_data]
 
 
+def calculate_top_accuracy(model, test_loader, criterion, data_dir="flower_data", size=10):
+    classes = os.listdir("{}/valid".format(data_dir))
+    test_loss = 0
+    class_correct = list(0. for i in range(102))
+    class_total = list(0. for i in range(102))
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    with torch.no_grad():
+        model.eval()  # prep model for evaluation
+        for data, target in test_loader:
+            # Move input and label tensors to the default device
+            data, target = data.to(device), target.to(device)
+            # forward pass: compute predicted outputs by passing inputs to the model
+            output = model(data)
+            # calculate the loss
+            loss = criterion(output, target)
+            # update test loss
+            test_loss += loss.item()  # *data.size(0)
+            # convert output probabilities to predicted class
+            _, pred = torch.max(output, 1)
+            # compare predictions to true label
+            correct = np.squeeze(pred.eq(target.data.view_as(pred)))
+            # calculate test accuracy for each object class
+            for i in range(size):
+                label = target.data[i]
+                class_correct[label] += correct[i].item()
+                class_total[label] += 1
+
+        # calculate and print avg test loss
+        test_loss = test_loss / len(test_loader.dataset)
+        print('Test Loss: {:.6f}\n'.format(test_loss))
+
+        for i in range(10):
+            if class_total[i] > 0:
+                print('Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
+                    str(i), 100 * class_correct[i] / class_total[i],
+                    np.sum(class_correct[i]), np.sum(class_total[i])))
+            else:
+                print('Test Accuracy of %5s: N/A (no training examples)' % (classes[i]))
+
+        print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)' % (
+            100. * np.sum(class_correct) / np.sum(class_total),
+            np.sum(class_correct), np.sum(class_total)))
+
+
 ######################################################
 # copy from https://github.com/GabrielePicco/deep-learning-flower-identifier
 ######################################################
@@ -295,6 +355,3 @@ def download_progress(blocknum, blocksize, totalsize):
             sys.stderr.write("\n")
     else:  # total size is unknown
         sys.stderr.write("read %d\n" % (readsofar,))
-
-
-
