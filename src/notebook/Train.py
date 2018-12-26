@@ -126,6 +126,7 @@ def train_model(model,
         valid_loss = 0.0
         total = 0
         correct = 0
+        e_since = time.time()
 
         ###################
         # train the model #
@@ -196,7 +197,7 @@ def train_model(model,
                 torch.save(model.state_dict(), path)
 
         # Time take for one epoch
-        time_elapsed = time.time() - since
+        time_elapsed = time.time() - e_since
         print('\tEpoch:{} completed in {:.0f}m {:.0f}s'.format(
             epoch + 1, time_elapsed // 60, time_elapsed % 60))
 
