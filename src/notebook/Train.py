@@ -197,12 +197,12 @@ def train_model(model,
 
         # Time take for one epoch
         time_elapsed = time.time() - since
-        print('\tOne epoch complete in {:.0f}m {:.0f}s'.format(
-            time_elapsed // 60, time_elapsed % 60))
+        print('\tEpoch:{} completed in {:.0f}m {:.0f}s'.format(
+            epoch + 1, time_elapsed // 60, time_elapsed % 60))
 
     # compare total time
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(
+    print('Training completed in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
 
     # return the model
