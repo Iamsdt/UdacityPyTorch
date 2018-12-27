@@ -12,6 +12,61 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import datasets, transforms
 
 
+def save_check_point(model, optimizer, scheduler, train_loader, path, epoch, save_cpu=False):
+    if save_cpu:
+        model = model.to('cpu')
+        path = path.split('.')[0] + '-cpu.pth'
+
+    cat_to_name = get_cat_name()
+    class_to_idx = train_loader.dataset.class_to_idx
+    idx_to_name = {idx: cat_to_name[category] for category, idx in class_to_idx.items()}
+    checkpoint = {
+        'cat_to_name': cat_to_name,
+        'class_to_idx': class_to_idx,
+        'idx_to_name': idx_to_name,
+        'epochs': epoch,
+        'classifier': model.classifier,
+        'state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict()
+    }
+
+    torch.save(checkpoint, path)
+    print(f"Model saved at {path}")
+
+
+def load_checkpoint(filepath, model, optimizer, scheduler):
+    # Make sure to set parameters as not trainable
+    for param in model.parameters():
+        param.requires_grad = False
+
+    # Load in checkpoint
+    checkpoint = torch.load(filepath)
+    # Extract classifier
+    model.classifier = checkpoint['classifier']
+    model.cat_to_name = checkpoint['cat_to_name']
+    model.class_to_idx = checkpoint['class_to_idx']
+    model.idx_to_name = checkpoint['idx_to_name']
+    model.epochs = checkpoint['epochs']
+
+    # Load in the state dict
+    model.load_state_dict(checkpoint['state_dict'])
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f'{total_params:,} total parameters.')
+    total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'{total_trainable_params:,} total gradient parameters.')
+    print(f'Model has been trained for {model.epochs} epochs.')
+
+    return model, optimizer, scheduler
+
+
 def freeze_parameters(model):
     for param in model.features.parameters():
         param.requires_grad = False
