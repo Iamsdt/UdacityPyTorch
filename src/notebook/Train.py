@@ -44,7 +44,12 @@ def load_checkpoint(filepath, model, lr=0.001, step=2, momentum=0.9, gamma=0.1):
         param.requires_grad = False
 
     # Load in checkpoint
-    checkpoint = torch.load(filepath)
+    if torch.cuda.is_available():
+        checkpoint = torch.load(filepath)
+    else:
+        checkpoint = torch.load(filepath,map_location="cpu")
+
+
     # Extract classifier
     model.classifier = checkpoint['classifier']
     model.cat_to_name = checkpoint['cat_to_name']
