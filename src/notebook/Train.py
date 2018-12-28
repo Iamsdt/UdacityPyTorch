@@ -10,6 +10,9 @@ import numpy as np
 import torch
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchvision import datasets, transforms
+import torch
+from torch import optim
+from torch.optim import lr_scheduler
 
 
 def save_check_point(model, optimizer, scheduler, train_loader, path, epoch, save_cpu=False):
@@ -35,7 +38,7 @@ def save_check_point(model, optimizer, scheduler, train_loader, path, epoch, sav
     print(f"Model saved at {path}")
 
 
-def load_checkpoint(filepath, model, optimizer, scheduler):
+def load_checkpoint(filepath, model):
     # Make sure to set parameters as not trainable
     for param in model.parameters():
         param.requires_grad = False
@@ -55,6 +58,11 @@ def load_checkpoint(filepath, model, optimizer, scheduler):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+    # optimizer = optim.Adadelta(model.parameters(), lr=0.01)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
+
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
@@ -64,7 +72,7 @@ def load_checkpoint(filepath, model, optimizer, scheduler):
     print(f'{total_trainable_params:,} total gradient parameters.')
     print(f'Model has been trained for {model.epochs} epochs.')
 
-    return model, optimizer, scheduler
+    return [model, optimizer, scheduler]
 
 
 def freeze_parameters(model):
