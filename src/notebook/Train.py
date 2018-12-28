@@ -38,7 +38,7 @@ def save_check_point(model, optimizer, scheduler, train_loader, path, epoch, sav
     print(f"Model saved at {path}")
 
 
-def load_checkpoint(filepath, model):
+def load_checkpoint(filepath, model, lr=0.001, step=2, momentum=0.9):
     # Make sure to set parameters as not trainable
     for param in model.parameters():
         param.requires_grad = False
@@ -58,10 +58,10 @@ def load_checkpoint(filepath, model):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 
     # optimizer = optim.Adadelta(model.parameters(), lr=0.01)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=step, gamma=0.1)
 
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
